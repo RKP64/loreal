@@ -5,8 +5,9 @@ from rapidfuzz import process, fuzz
 
 def rule_based_mapping(df_portal, df_catalogue):
     """
-    Performs an exact join on the 'ASIN' column and brings in 'New EAN' from the catalogue.
+    Performs an exact join on 'ASIN' and brings in 'New EAN' from the catalogue.
     """
+    # Basic validation
     if "ASIN" not in df_portal.columns:
         st.error("Portal file must contain an 'ASIN' column.")
         return None
@@ -19,15 +20,16 @@ def rule_based_mapping(df_portal, df_catalogue):
         st.error("Catalogue file must contain a 'New EAN' column.")
         return None
     
-    # Merge on 'ASIN' to map 'New EAN'
+    # Merge on 'ASIN' to map the 'New EAN'
     df_mapped = pd.merge(df_portal, df_catalogue[["ASIN", "New EAN"]], on="ASIN", how="left")
     return df_mapped
 
 def fuzzy_mapping(df_portal, df_catalogue, threshold=90):
     """
     Uses fuzzy matching to link ASINs from the portal file to 'New EAN' in the catalogue.
-    If the match score is >= threshold, we assign 'New EAN'; otherwise, it remains None.
+    If the match score is >= threshold, we assign 'New EAN'; otherwise, None.
     """
+    # Basic validation
     if "ASIN" not in df_portal.columns:
         st.error("Portal file must contain an 'ASIN' column.")
         return None
@@ -40,17 +42,17 @@ def fuzzy_mapping(df_portal, df_catalogue, threshold=90):
         st.error("Catalogue file must contain a 'New EAN' column.")
         return None
 
-    # Convert columns to lists for fuzzy matching
     catalogue_asins = df_catalogue["ASIN"].tolist()
-    catalogue_new_ean = df_catalogue["New EAN"].tolist()
+    catalogue_new_eans = df_catalogue["New EAN"].tolist()
 
     def match_asin(asin):
-        # Find the best match in the catalogue
+        # Find the best match for each ASIN in the portal
         result = process.extractOne(asin, catalogue_asins, scorer=fuzz.ratio)
         if result and result[1] >= threshold:
-            # Get index of matched ASIN to retrieve corresponding 'New EAN'
-            idx = catalogue_asins.index(result[0])
-            return catalogue_new_ean[idx]
+            matched_asin = result[0]
+            # Get the index of the matched ASIN to retrieve the corresponding 'New EAN'
+            idx = catalogue_asins.index(matched_asin)
+            return catalogue_new_eans[idx]
         else:
             return None
 
@@ -108,9 +110,11 @@ def main():
 
             # Convert the updated DataFrame to an Excel file in memory
             output = io.BytesIO()
+            # Use a context manager and DO NOT call writer.save() or writer.close() inside it
             with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
                 df_mapped.to_excel(writer, index=False, sheet_name="Mapped_Data")
-                writer.save()
+                # writer.save() is not needed; it auto-saves on exit from the 'with' block
+
             processed_data = output.getvalue()
 
             st.download_button(
