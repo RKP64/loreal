@@ -4,67 +4,88 @@ import io
 from rapidfuzz import process, fuzz
 
 def rule_based_mapping(df_portal, df_catalogue):
-    # Ensure both files have the necessary columns
-    if "ASIN" not in df_portal.columns or "ASIN" not in df_catalogue.columns:
-        st.error("Both files must contain an 'ASIN' column.")
+    """
+    Performs an exact join on the 'ASIN' column and brings in 'New EAN' from the catalogue.
+    """
+    if "ASIN" not in df_portal.columns:
+        st.error("Portal file must contain an 'ASIN' column.")
         return None
-    if "EAM" not in df_catalogue.columns:
-        st.error("Catalogue file must contain an 'EAM' column.")
+    
+    if "ASIN" not in df_catalogue.columns:
+        st.error("Catalogue file must contain an 'ASIN' column.")
         return None
-    # Merge the portal file with the catalogue file on 'ASIN'
-    df_mapped = pd.merge(df_portal, df_catalogue[["ASIN", "EAM"]], on="ASIN", how="left")
+    
+    if "New EAN" not in df_catalogue.columns:
+        st.error("Catalogue file must contain a 'New EAN' column.")
+        return None
+    
+    # Merge on 'ASIN' to map 'New EAN'
+    df_mapped = pd.merge(df_portal, df_catalogue[["ASIN", "New EAN"]], on="ASIN", how="left")
     return df_mapped
 
 def fuzzy_mapping(df_portal, df_catalogue, threshold=90):
-    if "ASIN" not in df_portal.columns or "ASIN" not in df_catalogue.columns:
-        st.error("Both files must contain an 'ASIN' column.")
+    """
+    Uses fuzzy matching to link ASINs from the portal file to 'New EAN' in the catalogue.
+    If the match score is >= threshold, we assign 'New EAN'; otherwise, it remains None.
+    """
+    if "ASIN" not in df_portal.columns:
+        st.error("Portal file must contain an 'ASIN' column.")
         return None
-    if "EAM" not in df_catalogue.columns:
-        st.error("Catalogue file must contain an 'EAM' column.")
+    
+    if "ASIN" not in df_catalogue.columns:
+        st.error("Catalogue file must contain an 'ASIN' column.")
         return None
+    
+    if "New EAN" not in df_catalogue.columns:
+        st.error("Catalogue file must contain a 'New EAN' column.")
+        return None
+
+    # Convert columns to lists for fuzzy matching
     catalogue_asins = df_catalogue["ASIN"].tolist()
-    catalogue_eams = df_catalogue["EAM"].tolist()
+    catalogue_new_ean = df_catalogue["New EAN"].tolist()
 
     def match_asin(asin):
-        # Use RapidFuzz to find the best matching ASIN in the catalogue
+        # Find the best match in the catalogue
         result = process.extractOne(asin, catalogue_asins, scorer=fuzz.ratio)
         if result and result[1] >= threshold:
+            # Get index of matched ASIN to retrieve corresponding 'New EAN'
             idx = catalogue_asins.index(result[0])
-            return catalogue_eams[idx]
+            return catalogue_new_ean[idx]
         else:
             return None
 
-    # Apply fuzzy matching for each ASIN in the portal file
-    df_portal["EAM"] = df_portal["ASIN"].apply(match_asin)
+    # Apply fuzzy matching to each ASIN in the portal file
+    df_portal["New EAN"] = df_portal["ASIN"].apply(match_asin)
     return df_portal
 
 def main():
-    st.title("ASIN to EAM Mapping Tool")
+    st.title("ASIN to New EAN Mapping Tool")
     st.markdown("""
     **Instructions:**
     1. Upload your daily portal file (which contains ASIN numbers).
-    2. Upload the master catalogue file (which maps ASIN to EAM).
+    2. Upload the master catalogue file (which has ASIN → New EAN mapping).
     3. Select the mapping method:
-       - **Rule-Based:** Performs an exact join on the ASIN field.
-       - **Fuzzy Matching:** Uses fuzzy logic (with a threshold) to match ASINs.
-    4. Download the resulting file.
+       - **Rule-Based:** Exact join on 'ASIN'.
+       - **Fuzzy Matching:** Uses fuzzy logic to match ASIN if there's a slight mismatch.
+    4. Download the resulting file with the 'New EAN' column added.
     """)
 
-    # Upload files
+    # File uploads
     uploaded_portal_file = st.file_uploader("Upload Portal File (with ASIN)", type=["xlsx", "xls", "csv"], key="portal")
-    uploaded_catalogue_file = st.file_uploader("Upload Catalogue File (ASIN to EAM)", type=["xlsx", "xls", "csv"], key="catalogue")
+    uploaded_catalogue_file = st.file_uploader("Upload Catalogue File (ASIN to New EAN)", type=["xlsx", "xls", "csv"], key="catalogue")
 
+    # Choose mapping method
     mapping_method = st.selectbox("Select Mapping Method", ["Rule-Based", "Fuzzy Matching"])
 
     if uploaded_portal_file and uploaded_catalogue_file:
         # Load the portal file
-        if uploaded_portal_file.name.endswith("csv"):
+        if uploaded_portal_file.name.endswith(".csv"):
             df_portal = pd.read_csv(uploaded_portal_file)
         else:
             df_portal = pd.read_excel(uploaded_portal_file)
 
         # Load the catalogue file
-        if uploaded_catalogue_file.name.endswith("csv"):
+        if uploaded_catalogue_file.name.endswith(".csv"):
             df_catalogue = pd.read_csv(uploaded_catalogue_file)
         else:
             df_catalogue = pd.read_excel(uploaded_catalogue_file)
@@ -101,3 +122,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
