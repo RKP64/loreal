@@ -1,0 +1,12 @@
+streamlit
+python-dotenv
+boto3
+pandas
+SQLAlchemy
+PyMySQL
+openpyxl
+langchain
+langchain-groq
+altair
+psycopg2
+rapidfuzz
