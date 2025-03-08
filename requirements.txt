@@ -1,12 +1,5 @@
-streamlit
-python-dotenv
-boto3
-pandas
-SQLAlchemy
-PyMySQL
-openpyxl
-langchain
-langchain-groq
-altair
-psycopg2
-rapidfuzz
+streamlit>=1.0
+pandas>=1.0
+rapidfuzz>=2.0
+openpyxl>=3.0
+xlsxwriter>=3.0
