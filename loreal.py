@@ -61,15 +61,12 @@ def fuzzy_mapping(df_portal, df_catalogue, threshold=90):
     return df_portal
 
 def main():
-    st.title("ASIN to New EAN Mapping Tool")
+    st.title("Loreal Data Maaping tool")
     st.markdown("""
     **Instructions:**
     1. Upload your daily portal file (which contains ASIN numbers).
     2. Upload the master catalogue file (which has ASIN → New EAN mapping).
-    3. Select the mapping method:
-       - **Rule-Based:** Exact join on 'ASIN'.
-       - **Fuzzy Matching:** Uses fuzzy logic to match ASIN if there's a slight mismatch.
-    4. Download the resulting file with the 'New EAN' column added.
+    3. Download the resulting file with the 'New EAN' column added.
     """)
 
     # File uploads
