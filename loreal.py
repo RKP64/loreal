@@ -61,7 +61,7 @@ def fuzzy_mapping(df_portal, df_catalogue, threshold=90):
     return df_portal
 
 def main():
-    st.title("Loreal Data Maaping tool")
+    st.title("Loreal Data Mapping tool")
     st.markdown("""
     **Instructions:**
     1. Upload your daily portal file (which contains ASIN numbers).
